@@ -140,12 +140,14 @@ class MainWindow(ctk.CTk):
         self.quality_tab = QualityTab(
             self.tab_view.tab("Quality"),
             on_change_callback=self._on_answer_change,
+            on_next_tab=lambda: self.tab_view.set("Structures"),
         )
         self.quality_tab.pack(fill="both", expand=True)
 
         self.structure_tab = StructureTab(
             self.tab_view.tab("Structures"),
             on_change_callback=self._on_answer_change,
+            on_next_tab=lambda: self.tab_view.set("Pathology"),
         )
         self.structure_tab.pack(fill="both", expand=True)
 
@@ -182,13 +184,6 @@ class MainWindow(ctk.CTk):
         )
         self.btn_prev.pack(side="left", padx=12, pady=10)
 
-        self.btn_skip = ctk.CTkButton(
-            bottom, text="Skip / N/A", width=110,
-            command=self._skip_record,
-            fg_color=BTN_ORANGE, text_color="white",
-        )
-        self.btn_skip.pack(side="left", padx=4, pady=10)
-
         self.lbl_save_status = ctk.CTkLabel(
             bottom, text="",
             font=ctk.CTkFont(size=11),
@@ -197,11 +192,18 @@ class MainWindow(ctk.CTk):
         self.lbl_save_status.pack(side="left", padx=16)
 
         self.btn_save_next = ctk.CTkButton(
-            bottom, text="Save & Next  ▶", width=150,
+            bottom, text="Save & Next Patient  ▶", width=190,
             command=self._save_and_next,
             fg_color=BTN_BLUE, text_color="white",
         )
         self.btn_save_next.pack(side="right", padx=12, pady=10)
+
+        self.btn_save_exit = ctk.CTkButton(
+            bottom, text="Save & Exit", width=120,
+            command=self._save_and_exit,
+            fg_color=BTN_GRAY, text_color="white",
+        )
+        self.btn_save_exit.pack(side="right", padx=4, pady=10)
 
         self.btn_save = ctk.CTkButton(
             bottom, text="Save", width=90,
@@ -244,8 +246,8 @@ class MainWindow(ctk.CTk):
 
     def _set_loaded(self, loaded: bool):
         state = "normal" if loaded else "disabled"
-        for widget in (self.btn_prev, self.btn_skip, self.btn_save,
-                       self.btn_save_next, self.entry_notes, self.cb_filter):
+        for widget in (self.btn_prev, self.btn_save,
+                       self.btn_save_next, self.btn_save_exit, self.entry_notes, self.cb_filter):
             widget.configure(state=state)
 
     # ------------------------------------------------------------------ #
@@ -277,6 +279,7 @@ class MainWindow(ctk.CTk):
         self.entry_notes.delete(0, "end")
         self.entry_notes.insert(0, str(notes) if notes else "")
 
+        self.tab_view.set("Quality")
         self._update_progress()
         self._update_tab_labels()
         self.lbl_save_status.configure(text="")
@@ -380,18 +383,9 @@ class MainWindow(ctk.CTk):
         if self._save():
             self._go_next()
 
-    def _skip_record(self):
-        answers = self._collect_answers()
-        answers["status"] = "skipped"
-        try:
-            self.excel.write_row(self.current_index, answers)
-            self.lbl_save_status.configure(
-                text="⟳ Marked as skipped", text_color=TEXT_AMBER,
-            )
-            self._update_progress()
-            self._go_next()
-        except Exception as e:
-            messagebox.showerror("Save error", str(e))
+    def _save_and_exit(self):
+        if self._save(mark_complete=False):
+            self.destroy()
 
     # ------------------------------------------------------------------ #
     #  UI Updates                                                          #

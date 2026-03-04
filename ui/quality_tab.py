@@ -25,10 +25,14 @@ TEXT_HINT      = "#666666"
 TEXT_HEADER    = "#111111"
 
 
+BTN_BLUE = "#1f6aa5"
+
+
 class QualityTab(ctk.CTkFrame):
-    def __init__(self, parent, on_change_callback=None, **kwargs):
+    def __init__(self, parent, on_change_callback=None, on_next_tab=None, **kwargs):
         super().__init__(parent, **kwargs)
         self.on_change_callback = on_change_callback
+        self.on_next_tab = on_next_tab
         self._vars = {}
         self._buttons = {}
         self._build()
@@ -86,6 +90,15 @@ class QualityTab(ctk.CTkFrame):
                 )
                 btn.grid(row=row, column=score, padx=3, pady=3)
                 self._buttons[key].append(btn)
+
+        if self.on_next_tab:
+            ctk.CTkButton(
+                self._scroll, text="Next →", width=90, height=28,
+                command=self.on_next_tab,
+                fg_color=BTN_BLUE, text_color="white",
+                font=ctk.CTkFont(size=11),
+            ).grid(row=11, column=0, columnspan=6,
+                   sticky="e", padx=8, pady=(12, 4))
 
     def _select(self, key: str, score: int):
         self._vars[key].set(score)
