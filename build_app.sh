@@ -11,10 +11,14 @@ SEP=$(python3 -c "import os; print(os.pathsep)")
 echo "Installing dependencies..."
 pip3 install customtkinter openpyxl xlrd pyperclip platformdirs pyinstaller
 
+echo "Cleaning previous build artifacts..."
+rm -rf dist build MSK_DataCollector.spec
+
 echo "Building application..."
 pyinstaller \
   --onefile \
   --windowed \
+  --clean \
   --name "MSK_DataCollector" \
   --hidden-import=xlrd \
   --add-data "ui${SEP}ui" \
