@@ -98,14 +98,6 @@ class MainWindow(ctk.CTk):
             text_color="white", fg_color=BTN_BLUE,
         ).pack(side="left")
 
-        # Theme toggle
-        self._dark_mode = False
-        self.btn_theme = ctk.CTkButton(
-            top, text="Dark Mode", width=100,
-            command=self._toggle_theme,
-            fg_color=BTN_GRAY, text_color="white",
-        )
-        self.btn_theme.grid(row=0, column=3, padx=8, pady=10)
 
         # ── Progress bar row ─────────────────────────────────────────────
         prog_frame = ctk.CTkFrame(self, corner_radius=0, fg_color=BG_PROG)
@@ -411,11 +403,3 @@ class MainWindow(ctk.CTk):
                  f"{done} completed ({int(pct * 100)}%)"
         )
 
-    def _toggle_theme(self):
-        self._dark_mode = not self._dark_mode
-        if self._dark_mode:
-            ctk.set_appearance_mode("Dark")
-            self.btn_theme.configure(text="Light Mode")
-        else:
-            ctk.set_appearance_mode("Light")
-            self.btn_theme.configure(text="Dark Mode")
