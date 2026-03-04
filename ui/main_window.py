@@ -37,7 +37,7 @@ class MainWindow(ctk.CTk):
         self.accessions: list[str] = []
         self.current_index: int = 0
         self._clipboard_after_id = None
-        self._filter_incomplete = False
+        self._filter_incomplete = True
 
         self._build_ui()
         self._set_loaded(False)
@@ -121,6 +121,7 @@ class MainWindow(ctk.CTk):
             text_color=TEXT_MAIN,
         )
         self.cb_filter.grid(row=0, column=2, padx=12, pady=6)
+        self.cb_filter.select()   # checked by default
 
         self.lbl_save_path = ctk.CTkLabel(
             prog_frame, text="",
@@ -227,7 +228,13 @@ class MainWindow(ctk.CTk):
             return
         try:
             self.accessions = self.excel.load(path)
-            self.current_index = 0
+            statuses = self.excel.get_completion_status()
+            first_incomplete = next(
+                (i for i in range(len(self.accessions))
+                 if statuses.get(i, "incomplete") not in ("complete", "skipped")),
+                0   # fallback: start at 0 if all are already complete
+            )
+            self.current_index = first_incomplete
             self._set_loaded(True)
             self._load_record(self.current_index)
             out_path = self.excel.get_output_path()
@@ -277,7 +284,16 @@ class MainWindow(ctk.CTk):
 
     def _go_previous(self):
         if self.current_index > 0:
-            self._load_record(self.current_index - 1)
+            prev_idx = self.current_index - 1
+            if self._filter_incomplete:
+                statuses = self.excel.get_completion_status()
+                while prev_idx >= 0:
+                    if statuses.get(prev_idx, "incomplete") not in ("complete", "skipped"):
+                        break
+                    prev_idx -= 1
+                else:
+                    return  # no incomplete record before current
+            self._load_record(prev_idx)
 
     def _go_next(self):
         if self.current_index < self.excel.total_records() - 1:
