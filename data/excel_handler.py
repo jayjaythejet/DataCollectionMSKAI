@@ -1,7 +1,7 @@
 """
 Excel read/write handler using openpyxl.
 Reads accession numbers from the user-selected input file (never modified).
-Writes all answers to a separate output file in the user's app data directory.
+Writes all answers to responses_<input_name>.xlsx in the same folder as the input file.
 """
 import os
 import openpyxl
@@ -123,12 +123,16 @@ class ExcelHandler:
             raise ValueError("The Excel file has no accession data rows.")
 
         self.accession_list = accessions
-        self._ensure_output_workbook(accessions)
+        input_dir = os.path.dirname(os.path.abspath(filepath))
+        input_stem = os.path.splitext(os.path.basename(filepath))[0]
+        self._ensure_output_workbook(accessions, output_dir=input_dir, output_stem=input_stem)
         return accessions
 
-    def _ensure_output_workbook(self, accessions: list):
-        """Create or load the output workbook in the app data directory."""
-        self.out_path = os.path.join(_get_app_data_dir(), "responses.xlsx")
+    def _ensure_output_workbook(self, accessions: list, output_dir: str = None, output_stem: str = "responses"):
+        """Create or load the output workbook next to the input file."""
+        if output_dir is None:
+            output_dir = _get_app_data_dir()
+        self.out_path = os.path.join(output_dir, f"responses_{output_stem}.xlsx")
         out_headers = ["accession"] + ANSWER_COLUMNS
 
         if os.path.exists(self.out_path):
