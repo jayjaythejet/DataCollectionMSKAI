@@ -5,6 +5,7 @@ Writes all answers to a separate output file in the user's app data directory.
 """
 import os
 import openpyxl
+import xlrd
 from datetime import datetime
 
 # All columns the app writes (in addition to reading 'accession')
@@ -51,6 +52,7 @@ class ExcelHandler:
         self.in_sheet = None
         self.accession_col = None
         self.data_rows = []       # row numbers in input sheet (1-based)
+        self.accession_list = []  # ordered list of accession strings (works for both .xls and .xlsx)
 
         self.out_path = None
         self.out_workbook = None
@@ -65,38 +67,62 @@ class ExcelHandler:
         Raises ValueError if no 'accession' column found.
         """
         self.in_filepath = filepath
-        self.in_workbook = openpyxl.load_workbook(filepath)
-        self.in_sheet = self.in_workbook.active
+        ext = os.path.splitext(filepath)[1].lower()
 
-        # Map header names -> column index in input sheet
-        headers = {}
-        for cell in self.in_sheet[1]:
-            if cell.value is not None:
-                headers[str(cell.value).strip().lower()] = cell.column
+        if ext == ".xls":
+            # Old binary Excel format — use xlrd (read-only)
+            wb_xls = xlrd.open_workbook(filepath)
+            sh = wb_xls.sheet_by_index(0)
+            headers = {}
+            for col in range(sh.ncols):
+                v = sh.cell_value(0, col)
+                if v:
+                    headers[str(v).strip().lower()] = col  # 0-based
+            if "accession" not in headers:
+                raise ValueError(
+                    "No 'accession' column found in the Excel file. "
+                    "Please ensure the header row has a column named 'accession'."
+                )
+            acc_col = headers["accession"]
+            accessions = []
+            for row in range(1, sh.nrows):  # skip header row
+                v = sh.cell_value(row, acc_col)
+                if v is not None and str(v).strip():
+                    accessions.append(str(v).strip())
+            # in_workbook/in_sheet remain None — not needed after load for .xls
+        else:
+            # .xlsx / .xlsm — use openpyxl
+            try:
+                self.in_workbook = openpyxl.load_workbook(filepath)
+            except Exception as e:
+                msg = str(e)
+                if "not a zip file" in msg.lower() or "bad magic" in msg.lower():
+                    raise ValueError(
+                        "Could not read this file. It may be in an unsupported format "
+                        "or password-protected. Try saving it as .xlsx and re-opening."
+                    ) from e
+                raise
+            self.in_sheet = self.in_workbook.active
+            headers = {}
+            for cell in self.in_sheet[1]:
+                if cell.value is not None:
+                    headers[str(cell.value).strip().lower()] = cell.column
+            if "accession" not in headers:
+                raise ValueError(
+                    "No 'accession' column found in the Excel file. "
+                    "Please ensure the header row has a column named 'accession'."
+                )
+            self.accession_col = headers["accession"]
+            accessions = []
+            for row in range(2, self.in_sheet.max_row + 1):
+                val = self.in_sheet.cell(row=row, column=self.accession_col).value
+                if val is not None and str(val).strip():
+                    accessions.append(str(val).strip())
 
-        if "accession" not in headers:
-            raise ValueError(
-                "No 'accession' column found in the Excel file. "
-                "Please ensure the header row has a column named 'accession'."
-            )
-
-        self.accession_col = headers["accession"]
-
-        # Collect data rows from input
-        self.data_rows = []
-        for row in range(2, self.in_sheet.max_row + 1):
-            val = self.in_sheet.cell(row=row, column=self.accession_col).value
-            if val is not None and str(val).strip() != "":
-                self.data_rows.append(row)
-
-        if not self.data_rows:
+        if not accessions:
             raise ValueError("The Excel file has no accession data rows.")
 
-        accessions = [
-            str(self.in_sheet.cell(row=r, column=self.accession_col).value).strip()
-            for r in self.data_rows
-        ]
-
+        self.accession_list = accessions
         self._ensure_output_workbook(accessions)
         return accessions
 
@@ -203,12 +229,11 @@ class ExcelHandler:
         return result
 
     def get_accession(self, row_index: int) -> str:
-        row = self.data_rows[row_index]
-        return str(self.in_sheet.cell(row=row, column=self.accession_col).value).strip()
+        return self.accession_list[row_index]
 
     def get_output_path(self) -> str:
         """Return the path where responses are being saved."""
         return self.out_path or ""
 
     def total_records(self) -> int:
-        return len(self.data_rows)
+        return len(self.accession_list)
