@@ -1,7 +1,9 @@
 """
 Excel read/write handler using openpyxl.
-Reads accession numbers and reads/writes answer columns in-place.
+Reads accession numbers from the user-selected input file (never modified).
+Writes all answers to a separate output file in the user's app data directory.
 """
+import os
 import openpyxl
 from datetime import datetime
 
@@ -25,27 +27,50 @@ ANSWER_COLUMNS = [
 ]
 
 
+def _get_app_data_dir() -> str:
+    """Return the writable app data directory, cross-platform."""
+    app_name = "MSK_DataCollector"
+    try:
+        from platformdirs import user_data_dir
+        base = user_data_dir(app_name, appauthor=False)
+    except ImportError:
+        if os.name == "nt":
+            base = os.path.join(
+                os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), app_name
+            )
+        else:
+            base = os.path.join(os.path.expanduser("~"), ".local", "share", app_name)
+    os.makedirs(base, exist_ok=True)
+    return base
+
+
 class ExcelHandler:
     def __init__(self):
-        self.filepath = None
-        self.workbook = None
-        self.sheet = None
-        self.col_index = {}   # column_name -> col_number (1-based)
+        self.in_filepath = None
+        self.in_workbook = None
+        self.in_sheet = None
         self.accession_col = None
-        self.data_rows = []   # list of row numbers (1-based) that have accessions
+        self.data_rows = []       # row numbers in input sheet (1-based)
+
+        self.out_path = None
+        self.out_workbook = None
+        self.out_sheet = None
+        self.out_col_index = {}   # col_name -> col_number (1-based) in output sheet
+        self.out_data_rows = []   # output row numbers indexed by record index
 
     def load(self, filepath: str) -> list[str]:
         """
-        Load the workbook. Returns list of accession values in order.
+        Load the input workbook (read-only intent — never saved back).
+        Returns list of accession values in order.
         Raises ValueError if no 'accession' column found.
         """
-        self.filepath = filepath
-        self.workbook = openpyxl.load_workbook(filepath)
-        self.sheet = self.workbook.active
+        self.in_filepath = filepath
+        self.in_workbook = openpyxl.load_workbook(filepath)
+        self.in_sheet = self.in_workbook.active
 
-        # Map existing header names -> column index
+        # Map header names -> column index in input sheet
         headers = {}
-        for cell in self.sheet[1]:
+        for cell in self.in_sheet[1]:
             if cell.value is not None:
                 headers[str(cell.value).strip().lower()] = cell.column
 
@@ -56,76 +81,122 @@ class ExcelHandler:
             )
 
         self.accession_col = headers["accession"]
-        self.col_index = {k: v for k, v in headers.items()}
 
-        # Ensure all answer columns exist as headers
-        self._ensure_answer_columns()
-
-        # Collect row numbers that have an accession value
+        # Collect data rows from input
         self.data_rows = []
-        for row in range(2, self.sheet.max_row + 1):
-            val = self.sheet.cell(row=row, column=self.accession_col).value
+        for row in range(2, self.in_sheet.max_row + 1):
+            val = self.in_sheet.cell(row=row, column=self.accession_col).value
             if val is not None and str(val).strip() != "":
                 self.data_rows.append(row)
 
         if not self.data_rows:
             raise ValueError("The Excel file has no accession data rows.")
 
-        return [
-            str(self.sheet.cell(row=r, column=self.accession_col).value).strip()
+        accessions = [
+            str(self.in_sheet.cell(row=r, column=self.accession_col).value).strip()
             for r in self.data_rows
         ]
 
-    def _ensure_answer_columns(self):
-        """Add any missing answer columns to the header row."""
-        # Find next available column
-        next_col = self.sheet.max_column + 1
+        self._ensure_output_workbook(accessions)
+        return accessions
 
-        for col_name in ANSWER_COLUMNS:
-            if col_name not in self.col_index:
-                self.sheet.cell(row=1, column=next_col, value=col_name)
-                self.col_index[col_name] = next_col
-                next_col += 1
+    def _ensure_output_workbook(self, accessions: list):
+        """Create or load the output workbook in the app data directory."""
+        self.out_path = os.path.join(_get_app_data_dir(), "responses.xlsx")
+        out_headers = ["accession"] + ANSWER_COLUMNS
 
-        self.workbook.save(self.filepath)
+        if os.path.exists(self.out_path):
+            self.out_workbook = openpyxl.load_workbook(self.out_path)
+            self.out_sheet = self.out_workbook.active
+
+            # Read existing headers
+            existing_headers = {}
+            for cell in self.out_sheet[1]:
+                if cell.value is not None:
+                    existing_headers[str(cell.value).strip().lower()] = cell.column
+
+            # Add any missing columns
+            next_col = self.out_sheet.max_column + 1
+            for col_name in out_headers:
+                if col_name not in existing_headers:
+                    self.out_sheet.cell(row=1, column=next_col, value=col_name)
+                    existing_headers[col_name] = next_col
+                    next_col += 1
+
+            self.out_col_index = existing_headers
+
+            # Build accession -> row map for existing output rows
+            acc_col = self.out_col_index["accession"]
+            existing_rows = {}
+            for r in range(2, self.out_sheet.max_row + 1):
+                v = self.out_sheet.cell(row=r, column=acc_col).value
+                if v is not None:
+                    existing_rows[str(v).strip()] = r
+
+            # Ensure each input accession has a row in output
+            next_out_row = max(existing_rows.values(), default=1) + 1
+            if next_out_row < 2:
+                next_out_row = 2
+
+            self.out_data_rows = []
+            for acc in accessions:
+                if acc in existing_rows:
+                    self.out_data_rows.append(existing_rows[acc])
+                else:
+                    self.out_sheet.cell(row=next_out_row, column=acc_col, value=acc)
+                    existing_rows[acc] = next_out_row
+                    self.out_data_rows.append(next_out_row)
+                    next_out_row += 1
+        else:
+            # Create fresh output workbook
+            self.out_workbook = openpyxl.Workbook()
+            self.out_sheet = self.out_workbook.active
+            for col, name in enumerate(out_headers, 1):
+                self.out_sheet.cell(row=1, column=col, value=name)
+            self.out_col_index = {name: col for col, name in enumerate(out_headers, 1)}
+
+            acc_col = self.out_col_index["accession"]
+            self.out_data_rows = []
+            for i, acc in enumerate(accessions):
+                out_row = i + 2
+                self.out_sheet.cell(row=out_row, column=acc_col, value=acc)
+                self.out_data_rows.append(out_row)
+
+        self.out_workbook.save(self.out_path)
 
     def read_row(self, row_index: int) -> dict:
         """
-        Read all answer column values for a given row_index (0-based into data_rows).
-        Returns dict of {column_name: value}.
+        Read all answer column values for a given row_index (0-based).
+        Reads from the output workbook.
         """
-        row = self.data_rows[row_index]
+        row = self.out_data_rows[row_index]
         result = {}
         for col_name in ANSWER_COLUMNS:
-            col_num = self.col_index.get(col_name)
+            col_num = self.out_col_index.get(col_name)
             if col_num:
-                result[col_name] = self.sheet.cell(row=row, column=col_num).value
+                result[col_name] = self.out_sheet.cell(row=row, column=col_num).value
             else:
                 result[col_name] = None
         return result
 
     def write_row(self, row_index: int, answers: dict):
         """
-        Write answers dict to the Excel row. Saves the file.
-        answers: {column_name: value}
+        Write answers to the output workbook only. Never touches the input file.
         """
-        row = self.data_rows[row_index]
+        row = self.out_data_rows[row_index]
         for col_name, value in answers.items():
-            col_num = self.col_index.get(col_name)
+            col_num = self.out_col_index.get(col_name)
             if col_num:
-                self.sheet.cell(row=row, column=col_num, value=value)
-        self.workbook.save(self.filepath)
+                self.out_sheet.cell(row=row, column=col_num, value=value)
+        self.out_workbook.save(self.out_path)
 
     def get_completion_status(self) -> dict:
-        """
-        Returns dict of {row_index: status_string} for all rows.
-        Status is read from the 'status' column.
-        """
-        status_col = self.col_index.get("status")
+        """Returns dict of {row_index: status_string} for all rows."""
+        status_col = self.out_col_index.get("status")
         result = {}
-        for i, row in enumerate(self.data_rows):
+        for i, row in enumerate(self.out_data_rows):
             if status_col:
-                val = self.sheet.cell(row=row, column=status_col).value
+                val = self.out_sheet.cell(row=row, column=status_col).value
                 result[i] = val or "incomplete"
             else:
                 result[i] = "incomplete"
@@ -133,7 +204,11 @@ class ExcelHandler:
 
     def get_accession(self, row_index: int) -> str:
         row = self.data_rows[row_index]
-        return str(self.sheet.cell(row=row, column=self.accession_col).value).strip()
+        return str(self.in_sheet.cell(row=row, column=self.accession_col).value).strip()
+
+    def get_output_path(self) -> str:
+        """Return the path where responses are being saved."""
+        return self.out_path or ""
 
     def total_records(self) -> int:
         return len(self.data_rows)

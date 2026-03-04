@@ -30,8 +30,8 @@ class MainWindow(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("MSK Data Collector")
-        self.geometry("820x720")
-        self.minsize(780, 640)
+        self.geometry("720x620")
+        self.minsize(680, 540)
 
         self.excel = ExcelHandler()
         self.accessions: list[str] = []
@@ -129,6 +129,12 @@ class MainWindow(ctk.CTk):
             text_color=TEXT_MAIN,
         )
         self.cb_filter.grid(row=0, column=2, padx=12, pady=6)
+
+        self.lbl_save_path = ctk.CTkLabel(
+            prog_frame, text="",
+            font=ctk.CTkFont(size=10), text_color=TEXT_GRAY,
+        )
+        self.lbl_save_path.grid(row=1, column=0, columnspan=3, padx=12, pady=(0, 4), sticky="w")
 
         # ── Tab view ─────────────────────────────────────────────────────
         self.tab_view = ctk.CTkTabview(self, anchor="nw")
@@ -232,6 +238,8 @@ class MainWindow(ctk.CTk):
             self.current_index = 0
             self._set_loaded(True)
             self._load_record(self.current_index)
+            out_path = self.excel.get_output_path()
+            self.lbl_save_path.configure(text=f"Scores saving to: {out_path}")
         except Exception as e:
             messagebox.showerror("Error loading file", str(e))
 

@@ -40,15 +40,18 @@ class PathologyTab(ctk.CTkFrame):
         self._build()
 
     def _build(self):
+        self._scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        self._scroll.pack(fill="both", expand=True)
+
         ctk.CTkLabel(
-            self,
+            self._scroll,
             text="Pathology",
             font=ctk.CTkFont(size=15, weight="bold"),
             text_color=TEXT_HEADER,
         ).grid(row=0, column=0, columnspan=2, pady=(12, 2), padx=16, sticky="w")
 
         ctk.CTkLabel(
-            self,
+            self._scroll,
             text="Select the finding for each structure.",
             font=ctk.CTkFont(size=11),
             text_color=TEXT_HINT,
@@ -62,11 +65,11 @@ class PathologyTab(ctk.CTkFrame):
             row = row_idx + 2
 
             ctk.CTkLabel(
-                self, text=label, anchor="w", width=210,
+                self._scroll, text=label, anchor="w", width=210,
                 font=ctk.CTkFont(size=13), text_color=TEXT_LABEL,
             ).grid(row=row, column=0, padx=(16, 12), pady=5, sticky="w")
 
-            btn_frame = ctk.CTkFrame(self, fg_color="transparent")
+            btn_frame = ctk.CTkFrame(self._scroll, fg_color="transparent")
             btn_frame.grid(row=row, column=1, padx=4, pady=5, sticky="w")
 
             btn_width = 130 if len(choices) > 2 else 90

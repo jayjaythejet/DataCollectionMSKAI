@@ -35,15 +35,18 @@ class StructureTab(ctk.CTkFrame):
         self._build()
 
     def _build(self):
+        self._scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        self._scroll.pack(fill="both", expand=True)
+
         ctk.CTkLabel(
-            self,
+            self._scroll,
             text="Structure Visibility",
             font=ctk.CTkFont(size=15, weight="bold"),
             text_color=TEXT_HEADER,
         ).grid(row=0, column=0, columnspan=6, pady=(12, 2), padx=16, sticky="w")
 
         ctk.CTkLabel(
-            self,
+            self._scroll,
             text="1 = Not visible     5 = Fully visible",
             font=ctk.CTkFont(size=11),
             text_color=TEXT_HINT,
@@ -52,7 +55,7 @@ class StructureTab(ctk.CTkFrame):
         col_labels = ["", "1\nNot Visible", "2\nPoor", "3\nAdequate", "4\nGood", "5\nFull"]
         for col, label in enumerate(col_labels):
             ctk.CTkLabel(
-                self, text=label,
+                self._scroll, text=label,
                 font=ctk.CTkFont(size=10, weight="bold"),
                 text_color=TEXT_HINT, width=80, justify="center",
             ).grid(row=2, column=col, padx=4, pady=(0, 4))
@@ -65,13 +68,13 @@ class StructureTab(ctk.CTkFrame):
             row = row_idx + 3
 
             ctk.CTkLabel(
-                self, text=label, anchor="w", width=190,
+                self._scroll, text=label, anchor="w", width=190,
                 font=ctk.CTkFont(size=13), text_color=TEXT_LABEL,
             ).grid(row=row, column=0, padx=(16, 8), pady=3, sticky="w")
 
             for score in range(1, 6):
                 btn = ctk.CTkButton(
-                    self,
+                    self._scroll,
                     text=str(score),
                     width=70, height=34,
                     fg_color=BTN_UNSELECTED,

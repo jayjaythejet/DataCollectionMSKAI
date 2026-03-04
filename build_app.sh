@@ -5,17 +5,20 @@
 
 set -e
 
+# PyInstaller uses ':' on Mac/Linux and ';' on Windows
+SEP=$(python3 -c "import os; print(os.pathsep)")
+
 echo "Installing dependencies..."
-pip3 install customtkinter openpyxl pyperclip pyinstaller
+pip3 install customtkinter openpyxl pyperclip platformdirs pyinstaller
 
 echo "Building application..."
 pyinstaller \
   --onefile \
   --windowed \
   --name "MSK_DataCollector" \
-  --add-data "ui:ui" \
-  --add-data "data:data" \
-  --add-data "utils:utils" \
+  --add-data "ui${SEP}ui" \
+  --add-data "data${SEP}data" \
+  --add-data "utils${SEP}utils" \
   app.py
 
 echo ""
