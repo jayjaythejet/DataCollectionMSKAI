@@ -16,6 +16,18 @@ PATHOLOGY_ITEMS = [
     ("bone_marrow_edema",         "Bone Marrow Edema",             ["Yes", "No"]),
 ]
 
+# String label → integer written to Excel
+_ENCODE = {
+    "Yes": 1, "No": 0,
+    "None": 0, "Partial Thickness": 1, "Full Thickness": 2,
+}
+
+# Tuple-of-choices → {int: string label} for round-trip decode
+_DECODE = {
+    ("Yes", "No"):                                   {1: "Yes", 0: "No"},
+    ("None", "Partial Thickness", "Full Thickness"): {0: "None", 1: "Partial Thickness", 2: "Full Thickness"},
+}
+
 # Colors per choice
 CHOICE_ACTIVE = {
     "Yes":              ("#c0392b", "#ffffff"),  # (bg, text)
@@ -105,14 +117,25 @@ class PathologyTab(ctk.CTkFrame):
             self.on_change_callback()
 
     def get_values(self) -> dict:
-        return {key: (var.get() if var.get() != "" else None)
+        return {key: (_ENCODE[var.get()] if var.get() != "" else None)
                 for key, var in self._vars.items()}
 
     def set_values(self, data: dict):
-        for key in self._vars:
+        for key, _, choices in PATHOLOGY_ITEMS:
             val = data.get(key)
-            if val is not None and str(val).strip() != "":
-                self._select(key, str(val))
+            if val is None or (isinstance(val, str) and val.strip() == ""):
+                self._clear_key(key)
+                continue
+            # Try numeric decode (new format)
+            try:
+                choice = _DECODE.get(tuple(choices), {}).get(int(val))
+            except (ValueError, TypeError):
+                choice = None
+            # Fall back to direct string match (old format / backward compat)
+            if choice is None and str(val) in choices:
+                choice = str(val)
+            if choice:
+                self._select(key, choice)
             else:
                 self._clear_key(key)
 
