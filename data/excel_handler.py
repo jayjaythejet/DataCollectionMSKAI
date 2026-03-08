@@ -46,7 +46,8 @@ def _get_app_data_dir() -> str:
 
 
 class ExcelHandler:
-    def __init__(self):
+    def __init__(self, answer_columns=None):
+        self.answer_columns = answer_columns or ANSWER_COLUMNS
         self.in_filepath = None
         self.in_workbook = None
         self.in_sheet = None
@@ -133,7 +134,7 @@ class ExcelHandler:
         if output_dir is None:
             output_dir = _get_app_data_dir()
         self.out_path = os.path.join(output_dir, f"responses_{output_stem}.xlsx")
-        out_headers = ["accession"] + ANSWER_COLUMNS
+        out_headers = ["accession"] + self.answer_columns
 
         if os.path.exists(self.out_path):
             self.out_workbook = openpyxl.load_workbook(self.out_path)
@@ -201,7 +202,7 @@ class ExcelHandler:
         """
         row = self.out_data_rows[row_index]
         result = {}
-        for col_name in ANSWER_COLUMNS:
+        for col_name in self.answer_columns:
             col_num = self.out_col_index.get(col_name)
             if col_num:
                 result[col_name] = self.out_sheet.cell(row=row, column=col_num).value

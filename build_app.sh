@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build script for MSK Data Collector
+# Build script for MSK Data Collector (Knee + Shoulder)
 # Run this on the target platform (Mac or Windows).
 # Requires: pip install pyinstaller
 
@@ -12,21 +12,35 @@ echo "Installing dependencies..."
 pip3 install customtkinter openpyxl xlrd pyperclip platformdirs pyinstaller
 
 echo "Cleaning previous build artifacts..."
-rm -rf dist build MSK_DataCollector.spec
+rm -rf dist build *.spec
 
-echo "Building application..."
+echo "Building Knee application..."
 pyinstaller \
   --onefile \
   --windowed \
   --clean \
-  --name "MSK_DataCollector" \
+  --name "MSK_Knee_DataCollector" \
   --hidden-import=xlrd \
   --add-data "ui${SEP}ui" \
   --add-data "data${SEP}data" \
   --add-data "utils${SEP}utils" \
-  app.py
+  --add-data "configs${SEP}configs" \
+  app_knee.py
+
+echo "Building Shoulder application..."
+pyinstaller \
+  --onefile \
+  --windowed \
+  --clean \
+  --name "MSK_Shoulder_DataCollector" \
+  --hidden-import=xlrd \
+  --add-data "ui${SEP}ui" \
+  --add-data "data${SEP}data" \
+  --add-data "utils${SEP}utils" \
+  --add-data "configs${SEP}configs" \
+  app_shoulder.py
 
 echo ""
 echo "Build complete!"
-echo "  Mac:     dist/MSK_DataCollector.app"
-echo "  Windows: dist/MSK_DataCollector.exe"
+echo "  Knee:     dist/MSK_Knee_DataCollector"
+echo "  Shoulder: dist/MSK_Shoulder_DataCollector"

@@ -27,13 +27,16 @@ BTN_ORANGE = "#c07000"
 
 
 class MainWindow(ctk.CTk):
-    def __init__(self):
+    def __init__(self, config=None):
         super().__init__()
-        self.title("MSK Data Collector")
+        self._config = config
+        title = config.window_title if config else "MSK Data Collector"
+        self.title(title)
         self.geometry("720x620")
         self.minsize(680, 540)
 
-        self.excel = ExcelHandler()
+        answer_cols = config.answer_columns if config else None
+        self.excel = ExcelHandler(answer_columns=answer_cols)
         self.accessions: list[str] = []
         self.current_index: int = 0
         self._clipboard_after_id = None
@@ -137,23 +140,36 @@ class MainWindow(ctk.CTk):
         self.tab_view.add("Structures")
         self.tab_view.add("Pathology")
 
+        q_kwargs = {"items": self._config.quality_items} if self._config else {}
         self.quality_tab = QualityTab(
             self.tab_view.tab("Quality"),
             on_change_callback=self._on_answer_change,
             on_next_tab=lambda: self.tab_view.set("Structures"),
+            **q_kwargs,
         )
         self.quality_tab.pack(fill="both", expand=True)
 
+        s_kwargs = {"items": self._config.structure_items} if self._config else {}
         self.structure_tab = StructureTab(
             self.tab_view.tab("Structures"),
             on_change_callback=self._on_answer_change,
             on_next_tab=lambda: self.tab_view.set("Pathology"),
+            **s_kwargs,
         )
         self.structure_tab.pack(fill="both", expand=True)
 
+        p_kwargs = {}
+        if self._config:
+            p_kwargs = {
+                "items": self._config.pathology_items,
+                "encode": self._config.pathology_encode,
+                "decode": self._config.pathology_decode,
+                "choice_colors": self._config.pathology_choice_colors,
+            }
         self.pathology_tab = PathologyTab(
             self.tab_view.tab("Pathology"),
             on_change_callback=self._on_answer_change,
+            **p_kwargs,
         )
         self.pathology_tab.pack(fill="both", expand=True)
 
@@ -398,7 +414,8 @@ class MainWindow(ctk.CTk):
         q = "Quality ✓" if self.quality_tab.is_complete() else "Quality"
         s = "Structures ✓" if self.structure_tab.is_complete() else "Structures"
         p = "Pathology ✓" if self.pathology_tab.is_complete() else "Pathology"
-        self.title(f"MSK Data Collector  |  [{q}]  [{s}]  [{p}]")
+        base = self._config.window_title if self._config else "MSK Data Collector"
+        self.title(f"{base}  |  [{q}]  [{s}]  [{p}]")
 
     def _update_progress(self):
         total = self.excel.total_records()

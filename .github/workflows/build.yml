@@ -1,0 +1,109 @@
+name: Build Executables
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pyinstaller
+
+      - name: Build Knee Windows executable
+        run: |
+          pyinstaller `
+            --onefile `
+            --windowed `
+            --name "MSK_Knee_DataCollector" `
+            --add-data "ui;ui" `
+            --add-data "data;data" `
+            --add-data "utils;utils" `
+            --add-data "configs;configs" `
+            app_knee.py
+
+      - name: Build Shoulder Windows executable
+        run: |
+          pyinstaller `
+            --onefile `
+            --windowed `
+            --name "MSK_Shoulder_DataCollector" `
+            --add-data "ui;ui" `
+            --add-data "data;data" `
+            --add-data "utils;utils" `
+            --add-data "configs;configs" `
+            app_shoulder.py
+
+      - name: Upload Knee Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MSK_Knee_DataCollector_Windows
+          path: dist/MSK_Knee_DataCollector.exe
+          retention-days: 30
+
+      - name: Upload Shoulder Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MSK_Shoulder_DataCollector_Windows
+          path: dist/MSK_Shoulder_DataCollector.exe
+          retention-days: 30
+
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pyinstaller
+
+      - name: Build Knee Mac app
+        run: |
+          pyinstaller \
+            --onefile \
+            --windowed \
+            --name "MSK_Knee_DataCollector" \
+            --add-data "ui:ui" \
+            --add-data "data:data" \
+            --add-data "utils:utils" \
+            --add-data "configs:configs" \
+            app_knee.py
+
+      - name: Build Shoulder Mac app
+        run: |
+          pyinstaller \
+            --onefile \
+            --windowed \
+            --name "MSK_Shoulder_DataCollector" \
+            --add-data "ui:ui" \
+            --add-data "data:data" \
+            --add-data "utils:utils" \
+            --add-data "configs:configs" \
+            app_shoulder.py
+
+      - name: Upload Knee Mac artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MSK_Knee_DataCollector_Mac
+          path: dist/MSK_Knee_DataCollector.app
+          retention-days: 30
+
+      - name: Upload Shoulder Mac artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MSK_Shoulder_DataCollector_Mac
+          path: dist/MSK_Shoulder_DataCollector.app
+          retention-days: 30

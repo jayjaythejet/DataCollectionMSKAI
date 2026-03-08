@@ -30,10 +30,11 @@ BTN_BLUE = "#1f6aa5"
 
 
 class StructureTab(ctk.CTkFrame):
-    def __init__(self, parent, on_change_callback=None, on_next_tab=None, **kwargs):
+    def __init__(self, parent, on_change_callback=None, on_next_tab=None, items=None, **kwargs):
         super().__init__(parent, **kwargs)
         self.on_change_callback = on_change_callback
         self.on_next_tab = on_next_tab
+        self._items = items or STRUCTURE_ITEMS
         self._vars = {}
         self._buttons = {}
         self._build()
@@ -64,7 +65,7 @@ class StructureTab(ctk.CTkFrame):
                 text_color=TEXT_HINT, width=80, justify="center",
             ).grid(row=2, column=col, padx=4, pady=(0, 4))
 
-        for row_idx, (key, label) in enumerate(STRUCTURE_ITEMS):
+        for row_idx, (key, label) in enumerate(self._items):
             var = ctk.IntVar(value=0)
             self._vars[key] = var
             self._buttons[key] = []
@@ -98,7 +99,7 @@ class StructureTab(ctk.CTkFrame):
                 command=self.on_next_tab,
                 fg_color=BTN_BLUE, text_color="white",
                 font=ctk.CTkFont(size=11),
-            ).grid(row=12, column=0, columnspan=6,
+            ).grid(row=len(self._items) + 3, column=0, columnspan=6,
                    sticky="e", padx=8, pady=(12, 4))
 
     def _select(self, key: str, score: int):
@@ -139,7 +140,7 @@ class StructureTab(ctk.CTkFrame):
             self._clear_key(key)
 
     def unanswered_fields(self) -> list[str]:
-        return [label for key, label in STRUCTURE_ITEMS if self._vars[key].get() == 0]
+        return [label for key, label in self._items if self._vars[key].get() == 0]
 
     def is_complete(self) -> bool:
         return all(var.get() != 0 for var in self._vars.values())

@@ -44,9 +44,14 @@ TEXT_HEADER     = "#111111"
 
 
 class PathologyTab(ctk.CTkFrame):
-    def __init__(self, parent, on_change_callback=None, **kwargs):
+    def __init__(self, parent, on_change_callback=None, items=None,
+                 encode=None, decode=None, choice_colors=None, **kwargs):
         super().__init__(parent, **kwargs)
         self.on_change_callback = on_change_callback
+        self._items = items or PATHOLOGY_ITEMS
+        self._encode = encode or _ENCODE
+        self._decode = decode or _DECODE
+        self._choice_colors = choice_colors or CHOICE_ACTIVE
         self._vars = {}
         self._buttons = {}
         self._build()
@@ -69,7 +74,7 @@ class PathologyTab(ctk.CTkFrame):
             text_color=TEXT_HINT,
         ).grid(row=1, column=0, columnspan=2, pady=(0, 8), padx=16, sticky="w")
 
-        for row_idx, (key, label, choices) in enumerate(PATHOLOGY_ITEMS):
+        for row_idx, (key, label, choices) in enumerate(self._items):
             var = ctk.StringVar(value="")
             self._vars[key] = var
             self._buttons[key] = {}
@@ -104,11 +109,11 @@ class PathologyTab(ctk.CTkFrame):
 
     def _select(self, key: str, choice: str):
         self._vars[key].set(choice)
-        items = next(item for item in PATHOLOGY_ITEMS if item[0] == key)
-        for c in items[2]:
+        item = next(item for item in self._items if item[0] == key)
+        for c in item[2]:
             btn = self._buttons[key][c]
             if c == choice:
-                bg, fg = CHOICE_ACTIVE.get(c, ("#1f6aa5", "#ffffff"))
+                bg, fg = self._choice_colors.get(c, ("#1f6aa5", "#ffffff"))
                 btn.configure(fg_color=bg, text_color=fg, border_color=bg)
             else:
                 btn.configure(fg_color=BTN_UNSELECTED, text_color=TEXT_UNSELECTED,
@@ -117,18 +122,18 @@ class PathologyTab(ctk.CTkFrame):
             self.on_change_callback()
 
     def get_values(self) -> dict:
-        return {key: (_ENCODE[var.get()] if var.get() != "" else None)
+        return {key: (self._encode[var.get()] if var.get() != "" else None)
                 for key, var in self._vars.items()}
 
     def set_values(self, data: dict):
-        for key, _, choices in PATHOLOGY_ITEMS:
+        for key, _, choices in self._items:
             val = data.get(key)
             if val is None or (isinstance(val, str) and val.strip() == ""):
                 self._clear_key(key)
                 continue
             # Try numeric decode (new format)
             try:
-                choice = _DECODE.get(tuple(choices), {}).get(int(val))
+                choice = self._decode.get(tuple(choices), {}).get(int(val))
             except (ValueError, TypeError):
                 choice = None
             # Fall back to direct string match (old format / backward compat)
@@ -150,7 +155,7 @@ class PathologyTab(ctk.CTkFrame):
             self._clear_key(key)
 
     def unanswered_fields(self) -> list[str]:
-        return [label for key, label, _ in PATHOLOGY_ITEMS if self._vars[key].get() == ""]
+        return [label for key, label, _ in self._items if self._vars[key].get() == ""]
 
     def is_complete(self) -> bool:
         return all(var.get() != "" for var in self._vars.values())
