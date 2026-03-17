@@ -6,14 +6,14 @@ Articular cartilage defect: None / Partial Thickness / Full Thickness
 import customtkinter as ctk
 
 PATHOLOGY_ITEMS = [
-    ("acl_tear",                  "ACL Tear",                      ["Yes", "No"]),
-    ("pcl_tear",                  "PCL Tear",                      ["Yes", "No"]),
-    ("mcl_tear",                  "MCL Tear",                      ["Yes", "No"]),
-    ("lcl_tear",                  "LCL Tear",                      ["Yes", "No"]),
-    ("medial_meniscus_tear",      "Medial Meniscus Tear",          ["Yes", "No"]),
-    ("lateral_meniscus_tear",     "Lateral Meniscus Tear",         ["Yes", "No"]),
+    ("acl_tear",                  "ACL Tear",                      ["No", "Yes"]),
+    ("pcl_tear",                  "PCL Tear",                      ["No", "Yes"]),
+    ("mcl_tear",                  "MCL Tear",                      ["No", "Yes"]),
+    ("lcl_tear",                  "LCL Tear",                      ["No", "Yes"]),
+    ("medial_meniscus_tear",      "Medial Meniscus Tear",          ["No", "Yes"]),
+    ("lateral_meniscus_tear",     "Lateral Meniscus Tear",         ["No", "Yes"]),
     ("articular_cartilage_defect","Articular Cartilage Defect",    ["None", "Partial Thickness", "Full Thickness"]),
-    ("bone_marrow_edema",         "Bone Marrow Edema",             ["Yes", "No"]),
+    ("bone_marrow_edema",         "Bone Marrow Edema",             ["No", "Yes"]),
 ]
 
 # String label → integer written to Excel
@@ -24,7 +24,7 @@ _ENCODE = {
 
 # Tuple-of-choices → {int: string label} for round-trip decode
 _DECODE = {
-    ("Yes", "No"):                                   {1: "Yes", 0: "No"},
+    ("No", "Yes"):                                   {1: "Yes", 0: "No"},
     ("None", "Partial Thickness", "Full Thickness"): {0: "None", 1: "Partial Thickness", 2: "Full Thickness"},
 }
 
