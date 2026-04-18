@@ -5,6 +5,8 @@ Articular cartilage defect: None / Partial Thickness / Full Thickness
 """
 import customtkinter as ctk
 
+from ui.theme import LIGHT
+
 PATHOLOGY_ITEMS = [
     ("acl_tear",                  "ACL Tear",                      ["No", "Yes"]),
     ("pcl_tear",                  "PCL Tear",                      ["No", "Yes"]),
@@ -28,50 +30,48 @@ _DECODE = {
     ("None", "Partial Thickness", "Full Thickness"): {0: "None", 1: "Partial Thickness", 2: "Full Thickness"},
 }
 
-# Colors per choice
+# Pathology colors carry clinical meaning — kept constant across themes.
 CHOICE_ACTIVE = {
-    "Yes":              ("#c0392b", "#ffffff"),  # (bg, text)
+    "Yes":              ("#c0392b", "#ffffff"),
     "No":               ("#27ae60", "#ffffff"),
     "None":             ("#27ae60", "#ffffff"),
     "Partial Thickness":("#e67e22", "#ffffff"),
     "Full Thickness":   ("#c0392b", "#ffffff"),
 }
-BTN_UNSELECTED  = "#e0e5ea"
-TEXT_UNSELECTED = "#111111"
-TEXT_LABEL      = "#111111"
-TEXT_HINT       = "#666666"
-TEXT_HEADER     = "#111111"
 
 
 class PathologyTab(ctk.CTkFrame):
     def __init__(self, parent, on_change_callback=None, items=None,
-                 encode=None, decode=None, choice_colors=None, **kwargs):
+                 encode=None, decode=None, choice_colors=None, palette=None, **kwargs):
         super().__init__(parent, **kwargs)
         self.on_change_callback = on_change_callback
         self._items = items or PATHOLOGY_ITEMS
         self._encode = encode or _ENCODE
         self._decode = decode or _DECODE
         self._choice_colors = choice_colors or CHOICE_ACTIVE
+        self.palette = palette or LIGHT
         self._vars = {}
         self._buttons = {}
+        self._themed_labels = []
         self._build()
+
+    def _themed_label(self, parent, text, color_key, **kwargs):
+        lbl = ctk.CTkLabel(parent, text=text, text_color=self.palette[color_key], **kwargs)
+        self._themed_labels.append((lbl, color_key))
+        return lbl
 
     def _build(self):
         self._scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self._scroll.pack(fill="both", expand=True)
 
-        ctk.CTkLabel(
-            self._scroll,
-            text="Pathology",
+        self._themed_label(
+            self._scroll, "Pathology", "TAB_TEXT_HEADER",
             font=ctk.CTkFont(size=15, weight="bold"),
-            text_color=TEXT_HEADER,
         ).grid(row=0, column=0, columnspan=2, pady=(12, 2), padx=16, sticky="w")
 
-        ctk.CTkLabel(
-            self._scroll,
-            text="Select the finding for each structure.",
-            font=ctk.CTkFont(size=11),
-            text_color=TEXT_HINT,
+        self._themed_label(
+            self._scroll, "Select the finding for each structure.",
+            "TAB_TEXT_HINT", font=ctk.CTkFont(size=11),
         ).grid(row=1, column=0, columnspan=2, pady=(0, 8), padx=16, sticky="w")
 
         for row_idx, (key, label, choices) in enumerate(self._items):
@@ -81,9 +81,9 @@ class PathologyTab(ctk.CTkFrame):
 
             row = row_idx + 2
 
-            ctk.CTkLabel(
-                self._scroll, text=label, anchor="w", width=210,
-                font=ctk.CTkFont(size=13), text_color=TEXT_LABEL,
+            self._themed_label(
+                self._scroll, label, "TAB_TEXT_LABEL",
+                anchor="w", width=210, font=ctk.CTkFont(size=13),
             ).grid(row=row, column=0, padx=(16, 12), pady=5, sticky="w")
 
             btn_frame = ctk.CTkFrame(self._scroll, fg_color="transparent")
@@ -96,11 +96,11 @@ class PathologyTab(ctk.CTkFrame):
                     btn_frame,
                     text=choice,
                     width=btn_width, height=34,
-                    fg_color=BTN_UNSELECTED,
-                    hover_color="#c0ccd8",
-                    text_color=TEXT_UNSELECTED,
+                    fg_color=self.palette["TAB_BTN_UNSELECTED"],
+                    hover_color=self.palette["TAB_BTN_HOVER"],
+                    text_color=self.palette["TAB_TEXT_UNSELECTED"],
                     border_width=1,
-                    border_color="#aab0b8",
+                    border_color=self.palette["TAB_BTN_BORDER"],
                     command=lambda k=key, c=choice: self._select(k, c),
                     font=ctk.CTkFont(size=13),
                 )
@@ -109,15 +109,16 @@ class PathologyTab(ctk.CTkFrame):
 
     def _select(self, key: str, choice: str):
         self._vars[key].set(choice)
+        p = self.palette
         item = next(item for item in self._items if item[0] == key)
         for c in item[2]:
             btn = self._buttons[key][c]
             if c == choice:
-                bg, fg = self._choice_colors.get(c, ("#1f6aa5", "#ffffff"))
+                bg, fg = self._choice_colors.get(c, (p["BTN_BLUE"], "#ffffff"))
                 btn.configure(fg_color=bg, text_color=fg, border_color=bg)
             else:
-                btn.configure(fg_color=BTN_UNSELECTED, text_color=TEXT_UNSELECTED,
-                              border_color="#aab0b8")
+                btn.configure(fg_color=p["TAB_BTN_UNSELECTED"], text_color=p["TAB_TEXT_UNSELECTED"],
+                              border_color=p["TAB_BTN_BORDER"])
         if self.on_change_callback:
             self.on_change_callback()
 
@@ -131,12 +132,10 @@ class PathologyTab(ctk.CTkFrame):
             if val is None or (isinstance(val, str) and val.strip() == ""):
                 self._clear_key(key)
                 continue
-            # Try numeric decode (new format)
             try:
                 choice = self._decode.get(tuple(choices), {}).get(int(val))
             except (ValueError, TypeError):
                 choice = None
-            # Fall back to direct string match (old format / backward compat)
             if choice is None and str(val) in choices:
                 choice = str(val)
             if choice:
@@ -146,9 +145,10 @@ class PathologyTab(ctk.CTkFrame):
 
     def _clear_key(self, key: str):
         self._vars[key].set("")
+        p = self.palette
         for btn in self._buttons[key].values():
-            btn.configure(fg_color=BTN_UNSELECTED, text_color=TEXT_UNSELECTED,
-                          border_color="#aab0b8")
+            btn.configure(fg_color=p["TAB_BTN_UNSELECTED"], text_color=p["TAB_TEXT_UNSELECTED"],
+                          border_color=p["TAB_BTN_BORDER"])
 
     def clear_all(self):
         for key in self._vars:
@@ -159,3 +159,14 @@ class PathologyTab(ctk.CTkFrame):
 
     def is_complete(self) -> bool:
         return all(var.get() != "" for var in self._vars.values())
+
+    def apply_theme(self, palette: dict) -> None:
+        self.palette = palette
+        for widget, key in self._themed_labels:
+            widget.configure(text_color=palette[key])
+        for key in list(self._vars.keys()):
+            val = self._vars[key].get()
+            if val:
+                self._select(key, val)
+            else:
+                self._clear_key(key)
