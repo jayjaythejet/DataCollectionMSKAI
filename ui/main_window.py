@@ -46,7 +46,7 @@ class MainWindow(ctk.CTk):
         self._build_ui()
         self._set_loaded(False)
 
-    def _register(self, widget, prop: str, palette_key: str):
+    def _register_themed(self, widget, prop: str, palette_key: str):
         self._themed_widgets.append((widget, prop, palette_key))
 
     # ------------------------------------------------------------------ #
@@ -62,14 +62,14 @@ class MainWindow(ctk.CTk):
         top = ctk.CTkFrame(self, corner_radius=0, fg_color=p["BG_TOP"])
         top.grid(row=0, column=0, sticky="ew")
         top.grid_columnconfigure(1, weight=1)
-        self._register(top, "fg_color", "BG_TOP")
+        self._register_themed(top, "fg_color", "BG_TOP")
 
         self.btn_open = ctk.CTkButton(
             top, text="Open Excel File", command=self._open_file,
             width=140, text_color="white", fg_color=p["BTN_BLUE"],
         )
         self.btn_open.grid(row=0, column=0, padx=12, pady=10)
-        self._register(self.btn_open, "fg_color", "BTN_BLUE")
+        self._register_themed(self.btn_open, "fg_color", "BTN_BLUE")
 
         acc_frame = ctk.CTkFrame(top, fg_color="transparent")
         acc_frame.grid(row=0, column=1, padx=8, sticky="ew")
@@ -79,7 +79,7 @@ class MainWindow(ctk.CTk):
             font=ctk.CTkFont(size=12), text_color=p["TEXT_GRAY"],
         )
         lbl_accession_prefix.pack(side="left")
-        self._register(lbl_accession_prefix, "text_color", "TEXT_GRAY")
+        self._register_themed(lbl_accession_prefix, "text_color", "TEXT_GRAY")
 
         self.lbl_accession = ctk.CTkLabel(
             acc_frame, text="—",
@@ -87,7 +87,7 @@ class MainWindow(ctk.CTk):
             text_color=p["TEXT_MAIN"],
         )
         self.lbl_accession.pack(side="left", padx=(6, 0))
-        self._register(self.lbl_accession, "text_color", "TEXT_MAIN")
+        self._register_themed(self.lbl_accession, "text_color", "TEXT_MAIN")
 
         self.lbl_clipboard = ctk.CTkLabel(
             acc_frame, text="",
@@ -95,7 +95,7 @@ class MainWindow(ctk.CTk):
             text_color=p["TEXT_GREEN"],
         )
         self.lbl_clipboard.pack(side="left", padx=(10, 0))
-        self._register(self.lbl_clipboard, "text_color", "TEXT_GREEN")
+        self._register_themed(self.lbl_clipboard, "text_color", "TEXT_GREEN")
 
         # Right side of top bar: theme switch + jump-to
         right_frame = ctk.CTkFrame(top, fg_color="transparent")
@@ -110,14 +110,14 @@ class MainWindow(ctk.CTk):
         self.switch_theme.pack(side="left", padx=(0, 12))
         if self._theme_name == "dark":
             self.switch_theme.select()
-        self._register(self.switch_theme, "text_color", "TEXT_MAIN")
+        self._register_themed(self.switch_theme, "text_color", "TEXT_MAIN")
 
         lbl_jump = ctk.CTkLabel(
             right_frame, text="Jump to:",
             font=ctk.CTkFont(size=11), text_color=p["TEXT_GRAY"],
         )
         lbl_jump.pack(side="left")
-        self._register(lbl_jump, "text_color", "TEXT_GRAY")
+        self._register_themed(lbl_jump, "text_color", "TEXT_GRAY")
 
         self.entry_jump = ctk.CTkEntry(
             right_frame, width=100, placeholder_text="accession",
@@ -125,27 +125,27 @@ class MainWindow(ctk.CTk):
         )
         self.entry_jump.pack(side="left", padx=4)
         self.entry_jump.bind("<Return>", lambda e: self._jump_to())
-        self._register(self.entry_jump, "text_color", "TEXT_MAIN")
+        self._register_themed(self.entry_jump, "text_color", "TEXT_MAIN")
 
         self.btn_go = ctk.CTkButton(
             right_frame, text="Go", width=40, command=self._jump_to,
             text_color="white", fg_color=p["BTN_BLUE"],
         )
         self.btn_go.pack(side="left")
-        self._register(self.btn_go, "fg_color", "BTN_BLUE")
+        self._register_themed(self.btn_go, "fg_color", "BTN_BLUE")
 
         # ── Progress bar row ─────────────────────────────────────────────
         prog_frame = ctk.CTkFrame(self, corner_radius=0, fg_color=p["BG_PROG"])
         prog_frame.grid(row=1, column=0, sticky="ew")
         prog_frame.grid_columnconfigure(1, weight=1)
-        self._register(prog_frame, "fg_color", "BG_PROG")
+        self._register_themed(prog_frame, "fg_color", "BG_PROG")
 
         self.lbl_progress = ctk.CTkLabel(
             prog_frame, text="No file loaded",
             font=ctk.CTkFont(size=11), text_color=p["TEXT_GRAY"],
         )
         self.lbl_progress.grid(row=0, column=0, padx=12, pady=6, sticky="w")
-        self._register(self.lbl_progress, "text_color", "TEXT_GRAY")
+        self._register_themed(self.lbl_progress, "text_color", "TEXT_GRAY")
 
         self.progress_bar = ctk.CTkProgressBar(prog_frame, height=8)
         self.progress_bar.set(0)
@@ -159,14 +159,14 @@ class MainWindow(ctk.CTk):
         )
         self.cb_filter.grid(row=0, column=2, padx=12, pady=6)
         self.cb_filter.select()
-        self._register(self.cb_filter, "text_color", "TEXT_MAIN")
+        self._register_themed(self.cb_filter, "text_color", "TEXT_MAIN")
 
         self.lbl_save_path = ctk.CTkLabel(
             prog_frame, text="",
             font=ctk.CTkFont(size=10), text_color=p["TEXT_GRAY"],
         )
         self.lbl_save_path.grid(row=1, column=0, columnspan=3, padx=12, pady=(0, 4), sticky="w")
-        self._register(self.lbl_save_path, "text_color", "TEXT_GRAY")
+        self._register_themed(self.lbl_save_path, "text_color", "TEXT_GRAY")
 
         # ── Tab view ─────────────────────────────────────────────────────
         self.tab_view = ctk.CTkTabview(self, anchor="nw")
@@ -222,7 +222,7 @@ class MainWindow(ctk.CTk):
             font=ctk.CTkFont(size=12), text_color=p["TEXT_MAIN"],
         )
         lbl_notes.grid(row=0, column=0, padx=(0, 8), sticky="w")
-        self._register(lbl_notes, "text_color", "TEXT_MAIN")
+        self._register_themed(lbl_notes, "text_color", "TEXT_MAIN")
 
         self.entry_notes = ctk.CTkEntry(
             notes_frame,
@@ -230,13 +230,13 @@ class MainWindow(ctk.CTk):
             text_color=p["TEXT_MAIN"],
         )
         self.entry_notes.grid(row=0, column=1, sticky="ew")
-        self._register(self.entry_notes, "text_color", "TEXT_MAIN")
+        self._register_themed(self.entry_notes, "text_color", "TEXT_MAIN")
 
         # ── Bottom action bar (grid, not pack) ───────────────────────────
         bottom = ctk.CTkFrame(self, corner_radius=0, fg_color=p["BG_BOTTOM"])
         bottom.grid(row=4, column=0, sticky="ew", pady=(6, 0))
         bottom.grid_columnconfigure(2, weight=1)   # spacer absorbs slack
-        self._register(bottom, "fg_color", "BG_BOTTOM")
+        self._register_themed(bottom, "fg_color", "BG_BOTTOM")
 
         self.btn_prev_patient = ctk.CTkButton(
             bottom, text="◀  Prev Patient", width=130,
@@ -244,7 +244,7 @@ class MainWindow(ctk.CTk):
             fg_color=p["BTN_GRAY"], text_color="white",
         )
         self.btn_prev_patient.grid(row=0, column=0, padx=(12, 4), pady=10)
-        self._register(self.btn_prev_patient, "fg_color", "BTN_GRAY")
+        self._register_themed(self.btn_prev_patient, "fg_color", "BTN_GRAY")
 
         self.btn_prev_incomplete = ctk.CTkButton(
             bottom, text="◀  Prev Incomplete", width=150,
@@ -252,7 +252,7 @@ class MainWindow(ctk.CTk):
             fg_color=p["BTN_GRAY"], text_color="white",
         )
         self.btn_prev_incomplete.grid(row=0, column=1, padx=4, pady=10)
-        self._register(self.btn_prev_incomplete, "fg_color", "BTN_GRAY")
+        self._register_themed(self.btn_prev_incomplete, "fg_color", "BTN_GRAY")
 
         self.lbl_save_status = ctk.CTkLabel(
             bottom, text="",
@@ -260,7 +260,7 @@ class MainWindow(ctk.CTk):
             text_color=p["TEXT_GREEN"],
         )
         self.lbl_save_status.grid(row=0, column=2, padx=16, sticky="w")
-        self._register(self.lbl_save_status, "text_color", "TEXT_GREEN")
+        self._register_themed(self.lbl_save_status, "text_color", "TEXT_GREEN")
 
         self.btn_save = ctk.CTkButton(
             bottom, text="Save", width=90,
@@ -268,7 +268,7 @@ class MainWindow(ctk.CTk):
             fg_color=p["BTN_GREEN"], text_color="white",
         )
         self.btn_save.grid(row=0, column=3, padx=4, pady=10)
-        self._register(self.btn_save, "fg_color", "BTN_GREEN")
+        self._register_themed(self.btn_save, "fg_color", "BTN_GREEN")
 
         self.btn_save_exit = ctk.CTkButton(
             bottom, text="Save & Exit", width=120,
@@ -276,7 +276,7 @@ class MainWindow(ctk.CTk):
             fg_color=p["BTN_GRAY"], text_color="white",
         )
         self.btn_save_exit.grid(row=0, column=4, padx=4, pady=10)
-        self._register(self.btn_save_exit, "fg_color", "BTN_GRAY")
+        self._register_themed(self.btn_save_exit, "fg_color", "BTN_GRAY")
 
         self.btn_save_next = ctk.CTkButton(
             bottom, text="Save & Next Patient  ▶", width=190,
@@ -284,7 +284,7 @@ class MainWindow(ctk.CTk):
             fg_color=p["BTN_BLUE"], text_color="white",
         )
         self.btn_save_next.grid(row=0, column=5, padx=(4, 12), pady=10)
-        self._register(self.btn_save_next, "fg_color", "BTN_BLUE")
+        self._register_themed(self.btn_save_next, "fg_color", "BTN_BLUE")
 
         # Keyboard shortcuts
         self.bind("<Return>", lambda e: self._save_and_next())
