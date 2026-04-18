@@ -20,8 +20,8 @@ class MainWindow(ctk.CTk):
         self._config = config
         title = config.window_title if config else "MSK Data Collector"
         self.title(title)
-        self.geometry("880x620")
-        self.minsize(880, 540)
+        self.geometry("820x620")
+        self.minsize(560, 540)
 
         self._theme_name = load_theme_name()
         self.palette = get_palette(self._theme_name)
@@ -286,10 +286,43 @@ class MainWindow(ctk.CTk):
         self.btn_save_next.grid(row=0, column=5, padx=(4, 12), pady=10)
         self._register_themed(self.btn_save_next, "fg_color", "BTN_BLUE")
 
+        # Responsive bottom-bar labels: (button, wide_text, wide_w, short_text, short_w)
+        self._responsive_buttons = [
+            (self.btn_prev_patient,    "\u25c0  Prev Patient",         130, "\u25c0 Prev", 80),
+            (self.btn_prev_incomplete, "\u25c0  Prev Incomplete",      150, "\u25c0\u25c0",    50),
+            (self.btn_save_exit,       "Save & Exit",                  120, "Exit",        70),
+            (self.btn_save_next,       "Save & Next Patient  \u25b6",  190, "Next \u25b6",  80),
+        ]
+        self._compact_mode = False
+        self.bind("<Configure>", self._on_window_configure)
+
         # Keyboard shortcuts
         self.bind("<Return>", lambda e: self._save_and_next())
         self.bind("<Left>",   lambda e: self._go_previous_incomplete())
         self.bind("<Right>",  lambda e: self._save_and_next())
+
+    # ------------------------------------------------------------------ #
+    #  Responsive bottom bar                                               #
+    # ------------------------------------------------------------------ #
+
+    def _on_window_configure(self, event):
+        if event.widget is not self:
+            return
+        width = self.winfo_width()
+        # Hysteresis prevents flicker when dragged exactly on the boundary.
+        if not self._compact_mode and width < 780:
+            self._compact_mode = True
+            self._apply_button_mode()
+        elif self._compact_mode and width >= 820:
+            self._compact_mode = False
+            self._apply_button_mode()
+
+    def _apply_button_mode(self):
+        for btn, wide_text, wide_w, short_text, short_w in self._responsive_buttons:
+            if self._compact_mode:
+                btn.configure(text=short_text, width=short_w)
+            else:
+                btn.configure(text=wide_text, width=wide_w)
 
     # ------------------------------------------------------------------ #
     #  Theme switching                                                     #
