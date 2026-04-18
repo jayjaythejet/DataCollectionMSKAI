@@ -4,6 +4,8 @@ from configs.base import AppConfig
 KNEE_CONFIG = AppConfig(
     app_title="MSK Knee Data Collector",
     window_title="MSK Knee Data Collector",
+    input_sheet_name="Drusinsky_knee",
+    output_sheet_name="Drusinsky_knee",
     quality_items=[
         ("contrast_resolution",    "Contrast Resolution"),
         ("edge_sharpness",         "Edge Sharpness"),

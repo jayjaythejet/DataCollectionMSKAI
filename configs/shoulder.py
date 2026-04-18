@@ -4,6 +4,8 @@ from configs.base import AppConfig
 SHOULDER_CONFIG = AppConfig(
     app_title="MSK Shoulder Data Collector",
     window_title="MSK Shoulder Data Collector",
+    input_sheet_name="Drusinsky_shoulder",
+    output_sheet_name="Drusinsky_shoulder",
     quality_items=[
         ("contrast_resolution",        "Contrast Resolution"),
         ("edge_sharpness",             "Edge Sharpness"),

@@ -45,9 +45,20 @@ def _get_app_data_dir() -> str:
     return base
 
 
+def _find_sheet_name(available: list[str], wanted: str) -> str | None:
+    """Case-insensitive, whitespace-trimmed match over available sheet names."""
+    target = wanted.strip().lower()
+    for name in available:
+        if name.strip().lower() == target:
+            return name
+    return None
+
+
 class ExcelHandler:
-    def __init__(self, answer_columns=None):
+    def __init__(self, answer_columns=None, input_sheet_name: str = None, output_sheet_name: str = None):
         self.answer_columns = answer_columns or ANSWER_COLUMNS
+        self.input_sheet_name = input_sheet_name
+        self.output_sheet_name = output_sheet_name or input_sheet_name
         self.in_filepath = None
         self.in_workbook = None
         self.in_sheet = None
@@ -73,7 +84,16 @@ class ExcelHandler:
         if ext == ".xls":
             # Old binary Excel format — use xlrd (read-only)
             wb_xls = xlrd.open_workbook(filepath)
-            sh = wb_xls.sheet_by_index(0)
+            if self.input_sheet_name:
+                matched = _find_sheet_name(wb_xls.sheet_names(), self.input_sheet_name)
+                if matched is None:
+                    raise ValueError(
+                        f"Sheet '{self.input_sheet_name}' not found in the Excel file. "
+                        f"Sheets found: {', '.join(wb_xls.sheet_names())}."
+                    )
+                sh = wb_xls.sheet_by_name(matched)
+            else:
+                sh = wb_xls.sheet_by_index(0)
             headers = {}
             for col in range(sh.ncols):
                 v = sh.cell_value(0, col)
@@ -103,7 +123,16 @@ class ExcelHandler:
                         "or password-protected. Try saving it as .xlsx and re-opening."
                     ) from e
                 raise
-            self.in_sheet = self.in_workbook.active
+            if self.input_sheet_name:
+                matched = _find_sheet_name(self.in_workbook.sheetnames, self.input_sheet_name)
+                if matched is None:
+                    raise ValueError(
+                        f"Sheet '{self.input_sheet_name}' not found in the Excel file. "
+                        f"Sheets found: {', '.join(self.in_workbook.sheetnames)}."
+                    )
+                self.in_sheet = self.in_workbook[matched]
+            else:
+                self.in_sheet = self.in_workbook.active
             headers = {}
             for cell in self.in_sheet[1]:
                 if cell.value is not None:
@@ -138,7 +167,17 @@ class ExcelHandler:
 
         if os.path.exists(self.out_path):
             self.out_workbook = openpyxl.load_workbook(self.out_path)
-            self.out_sheet = self.out_workbook.active
+
+            if self.output_sheet_name:
+                matched = _find_sheet_name(self.out_workbook.sheetnames, self.output_sheet_name)
+                if matched is not None:
+                    self.out_sheet = self.out_workbook[matched]
+                else:
+                    self.out_sheet = self.out_workbook.create_sheet(self.output_sheet_name)
+                    for col, name in enumerate(out_headers, 1):
+                        self.out_sheet.cell(row=1, column=col, value=name)
+            else:
+                self.out_sheet = self.out_workbook.active
 
             # Read existing headers
             existing_headers = {}
@@ -182,6 +221,8 @@ class ExcelHandler:
             # Create fresh output workbook
             self.out_workbook = openpyxl.Workbook()
             self.out_sheet = self.out_workbook.active
+            if self.output_sheet_name:
+                self.out_sheet.title = self.output_sheet_name
             for col, name in enumerate(out_headers, 1):
                 self.out_sheet.cell(row=1, column=col, value=name)
             self.out_col_index = {name: col for col, name in enumerate(out_headers, 1)}

@@ -51,6 +51,8 @@ def build_pathology_maps(pathology_items):
 class AppConfig:
     app_title: str
     window_title: str
+    input_sheet_name: str
+    output_sheet_name: str
     quality_items: list       # list of (key, label)
     structure_items: list     # list of (key, label)
     pathology_items: list     # list of (key, label, choices)

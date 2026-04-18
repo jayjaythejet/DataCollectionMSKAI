@@ -36,7 +36,13 @@ class MainWindow(ctk.CTk):
         self.minsize(680, 540)
 
         answer_cols = config.answer_columns if config else None
-        self.excel = ExcelHandler(answer_columns=answer_cols)
+        input_sheet = config.input_sheet_name if config else None
+        output_sheet = config.output_sheet_name if config else None
+        self.excel = ExcelHandler(
+            answer_columns=answer_cols,
+            input_sheet_name=input_sheet,
+            output_sheet_name=output_sheet,
+        )
         self.accessions: list[str] = []
         self.current_index: int = 0
         self._clipboard_after_id = None
