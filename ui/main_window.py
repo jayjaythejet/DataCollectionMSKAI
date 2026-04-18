@@ -294,7 +294,7 @@ class MainWindow(ctk.CTk):
             (self.btn_save_next,       "Save & Next Patient  \u25b6",  190, "Next \u25b6",  80),
         ]
         self._compact_mode = False
-        self.bind("<Configure>", self._on_window_configure)
+        self.bind("<Configure>", self._on_window_configure, add="+")
 
         # Keyboard shortcuts
         self.bind("<Return>", lambda e: self._save_and_next())
@@ -306,9 +306,11 @@ class MainWindow(ctk.CTk):
     # ------------------------------------------------------------------ #
 
     def _on_window_configure(self, event):
-        if event.widget is not self:
+        # str() comparison: tkinter may leave event.widget as the Tcl path "."
+        # on Windows/CTk when _nametowidget can't resolve it to the Python self.
+        if str(event.widget) != str(self):
             return
-        width = self.winfo_width()
+        width = event.width
         # Hysteresis prevents flicker when dragged exactly on the boundary.
         if not self._compact_mode and width < 780:
             self._compact_mode = True
