@@ -262,6 +262,21 @@ class ExcelHandler:
                 self.out_sheet.cell(row=row, column=col_num, value=value)
         self.out_workbook.save(self.out_path)
 
+    def has_partial_answers(self, row_index: int) -> bool:
+        """True if row has at least one saved answer and isn't marked complete."""
+        data = self.read_row(row_index)
+        status = (data.get("status") or "")
+        if isinstance(status, str) and status.strip().lower() == "complete":
+            return False
+        ignored = {"notes", "status", "saved_at"}
+        for key, val in data.items():
+            if key in ignored or val is None:
+                continue
+            if isinstance(val, str) and not val.strip():
+                continue
+            return True
+        return False
+
     def get_completion_status(self) -> dict:
         """Returns dict of {row_index: status_string} for all rows."""
         status_col = self.out_col_index.get("status")

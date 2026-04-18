@@ -77,5 +77,5 @@ class AppConfig:
             cols.append(key)
         for key, _label, _choices in self.pathology_items:
             cols.append(key)
-        cols += ["notes", "status"]
+        cols += ["notes", "status", "saved_at"]
         return cols

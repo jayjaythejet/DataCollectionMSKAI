@@ -199,12 +199,19 @@ class MainWindow(ctk.CTk):
         bottom = ctk.CTkFrame(self, corner_radius=0, fg_color=BG_BOTTOM)
         bottom.grid(row=4, column=0, sticky="ew", pady=(6, 0))
 
-        self.btn_prev = ctk.CTkButton(
-            bottom, text="◀  Previous", width=120,
-            command=self._go_previous,
+        self.btn_prev_patient = ctk.CTkButton(
+            bottom, text="◀  Prev Patient", width=130,
+            command=self._go_previous_patient,
             fg_color=BTN_GRAY, text_color="white",
         )
-        self.btn_prev.pack(side="left", padx=12, pady=10)
+        self.btn_prev_patient.pack(side="left", padx=(12, 4), pady=10)
+
+        self.btn_prev_incomplete = ctk.CTkButton(
+            bottom, text="◀  Prev Incomplete", width=150,
+            command=self._go_previous_incomplete,
+            fg_color=BTN_GRAY, text_color="white",
+        )
+        self.btn_prev_incomplete.pack(side="left", padx=4, pady=10)
 
         self.lbl_save_status = ctk.CTkLabel(
             bottom, text="",
@@ -236,7 +243,7 @@ class MainWindow(ctk.CTk):
 
         # Keyboard shortcuts
         self.bind("<Return>", lambda e: self._save_and_next())
-        self.bind("<Left>",   lambda e: self._go_previous())
+        self.bind("<Left>",   lambda e: self._go_previous_incomplete())
         self.bind("<Right>",  lambda e: self._save_and_next())
 
     # ------------------------------------------------------------------ #
@@ -268,7 +275,7 @@ class MainWindow(ctk.CTk):
 
     def _set_loaded(self, loaded: bool):
         state = "normal" if loaded else "disabled"
-        for widget in (self.btn_prev, self.btn_save,
+        for widget in (self.btn_prev_patient, self.btn_prev_incomplete, self.btn_save,
                        self.btn_save_next, self.btn_save_exit, self.entry_notes, self.cb_filter):
             widget.configure(state=state)
 
@@ -305,9 +312,22 @@ class MainWindow(ctk.CTk):
         self._update_progress()
         self._update_tab_labels()
         self.lbl_save_status.configure(text="")
-        self.btn_prev.configure(state="normal" if index > 0 else "disabled")
+        prev_enabled = "normal" if index > 0 else "disabled"
+        self.btn_prev_patient.configure(state=prev_enabled)
+        self.btn_prev_incomplete.configure(state=prev_enabled)
 
-    def _go_previous(self):
+        if self.excel.has_partial_answers(index):
+            messagebox.showinfo(
+                "Previously incomplete",
+                "This patient was previously started but not completed.\n"
+                "Your earlier selections have been restored — you can continue where you left off.",
+            )
+
+    def _go_previous_patient(self):
+        if self.current_index > 0:
+            self._load_record(self.current_index - 1)
+
+    def _go_previous_incomplete(self):
         if self.current_index > 0:
             prev_idx = self.current_index - 1
             if self._filter_incomplete:
@@ -360,6 +380,7 @@ class MainWindow(ctk.CTk):
         answers.update(self.structure_tab.get_values())
         answers.update(self.pathology_tab.get_values())
         answers["notes"] = self.entry_notes.get().strip() or None
+        answers["saved_at"] = datetime.now().isoformat(timespec="seconds")
         return answers
 
     def _validate(self) -> list[str]:
